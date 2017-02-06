@@ -8,20 +8,8 @@ using UnityEngine;
 
 public static class LayerDefineCreator
 {
-    // 無効な文字を管理する配列
-    private static readonly string[] INVALID_CHARS =
-    {
-        " ", "!", "\"", "#", "$",
-        "%", "&", "\'", "(", ")",
-        "-", "=", "^",  "~", "\\",
-        "|", "[", "{",  "@", "`",
-        "]", "}", ":",  "*", ";",
-        "+", "/", "?",  ".", ">",
-        ",", "<"
-    };
-
-    private const string ITEM_NAME = "Tools/Create/Layers";  // コマンド名
-    private const string PATH = "Assets/Scripts/Defines/LayerDefine.cs";      // ファイルパス
+    private const string ITEM_NAME = DefineCreatorUtility.ITEM_NAME + "Layers";  // コマンド名
+    private const string PATH = DefineCreatorUtility.PATH + "LayerDefine.cs";      // ファイルパス
 
     private static readonly string FILENAME = Path.GetFileName(PATH);                   // ファイル名(拡張子あり)
     private static readonly string FILENAME_WITHOUT_EXTENSION = Path.GetFileNameWithoutExtension(PATH);   // ファイル名(拡張子なし)
@@ -38,8 +26,7 @@ public static class LayerDefineCreator
         }
 
         CreateScript();
-
-        EditorUtility.DisplayDialog(FILENAME, "作成が完了しました", "OK");
+        DefineCreatorUtility.ShowCompleteDialog(FILENAME);
     }
 
     /// <summary>
@@ -49,29 +36,19 @@ public static class LayerDefineCreator
     {
         var builder = new StringBuilder();
 
-        builder.AppendLine("/// <summary>");
-        builder.AppendLine("/// レイヤー名を定数で管理するクラス");
-        builder.AppendLine("/// </summary>");
-        builder.AppendFormat("public static class {0}", FILENAME_WITHOUT_EXTENSION).AppendLine();
-        builder.AppendLine("{");
+        DefineCreatorUtility.AppendDeclarationString(DefineCreatorUtility.FileDeclearType.Class, builder,
+                                                     FILENAME_WITHOUT_EXTENSION, "レイヤー名を定数で管理するクラス"
+                                                     );
 
         foreach (var n in InternalEditorUtility.layers.
-                Select(c => new { var = RemoveInvalidChars(c), val = c })
+                Select(c => new { var = DefineCreatorUtility.RemoveInvalidChars(c), val = c })
                 )
         {
             builder.Append("\t").AppendFormat(@"public const string {0} = ""{1}"";", n.var, n.val).AppendLine();
         }
 
-        builder.AppendLine("}");
-
-        var directoryName = Path.GetDirectoryName(PATH);
-        if (!Directory.Exists(directoryName))
-        {
-            Directory.CreateDirectory(directoryName);
-        }
-
-        File.WriteAllText(PATH, builder.ToString(), Encoding.UTF8);
-        AssetDatabase.Refresh(ImportAssetOptions.ImportRecursive);
+        DefineCreatorUtility.AppendEndDeclarationString(builder);
+        DefineCreatorUtility.CreateFile(PATH, builder);
     }
 
     /// <summary>
@@ -80,15 +57,6 @@ public static class LayerDefineCreator
     [MenuItem(ITEM_NAME, true)]
     public static bool CanCreate()
     {
-        return !EditorApplication.isPlaying && !Application.isPlaying && !EditorApplication.isCompiling;
-    }
-
-    /// <summary>
-    /// 無効な文字を削除します
-    /// </summary>
-    public static string RemoveInvalidChars(string str)
-    {
-        Array.ForEach(INVALID_CHARS, c => str = str.Replace(c, string.Empty));
-        return str;
+        return DefineCreatorUtility.CanCreate();
     }
 }
